@@ -1,10 +1,23 @@
-import { Button } from '@/components/ui/button';
-import Image from "next/image";
+import { config } from '@/lib/config';
+import { fetchMetadata } from "frames.js/next";
 
-export default function Home() {
-  return (
-    <div>
-      <Button>Click me</Button>
-    </div>
-  );
+export async function generateMetadata() {
+  return {
+    title: "My Page",
+    // ...
+    other: {
+      // ...
+      ...(await fetchMetadata(
+        // provide a full URL to your /frames endpoint
+        new URL(
+          "/frames",
+          config.host
+        )
+      )),
+    },
+  };
+}
+
+export default function Page() {
+  return <span>My existing page</span>;
 }
