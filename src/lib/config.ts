@@ -1,4 +1,4 @@
-let host = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_HOST || 'http://localhost:3000'
+let host = process.env.NEXT_PUBLIC_HOST || process.env.VERCEL_URL || 'http://localhost:3000'
 
 if (!host) {
   throw new Error('No host provided')
