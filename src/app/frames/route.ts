@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       timestamp: body.untrustedData.timestamp,
       network: body.untrustedData.network,
       buttonIndex: body.untrustedData.buttonIndex,
+      address: "",
       castId: {
         fid: body.untrustedData.castId.fid,
         hash: body.untrustedData.castId.hash,

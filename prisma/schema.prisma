@@ -20,6 +20,7 @@ model RequestLogs {
   messageHash String
   timestamp   Int
   network     Int
+  address     String
   buttonIndex Int
   castId      CastId
   trustedData TrustedData
