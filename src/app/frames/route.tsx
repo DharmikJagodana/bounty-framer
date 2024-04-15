@@ -3,6 +3,11 @@ import { Button } from "frames.js/next";
 import { frames } from "./frames";
 
 const handleRequest = frames(async (ctx) => {
+  console.log("ctx");
+  console.log(ctx);
+  // if (!ctx.message.isValid) {
+  //   throw new Error("Invalid Frame");
+  // }
   return {
     image: (
       <span>
