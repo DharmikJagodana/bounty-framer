@@ -1,20 +1,22 @@
 import { config } from '@/lib/config';
-import { fetchMetadata } from "frames.js/next";
+import { Frame, getFrameFlattened } from "frames.js";
+
+const initialFrame: Frame = {
+  image: "https://picsum.photos/seed/frames.js/1146/600",
+  version: "vNext",
+  buttons: [
+    {
+      label: "Random image",
+      action: "post",
+    },
+  ],
+  postUrl: `${config.host}/frames`,
+};
 
 export async function generateMetadata() {
   return {
-    title: "My Page",
-    // ...
-    other: {
-      // ...
-      ...(await fetchMetadata(
-        // provide a full URL to your /frames endpoint
-        new URL(
-          "/frames",
-          config.host
-        )
-      )),
-    },
+    title: "Bounty Frames",
+    other: getFrameFlattened(initialFrame),
   };
 }
 

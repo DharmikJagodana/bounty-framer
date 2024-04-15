@@ -4,9 +4,8 @@ import { config } from '@/lib/config';
 
 export const frames = createFrames({
   basePath: "/frames",
-  middleware: [farcasterHubContext({
-    hubHttpUrl: config.host
-  })],
+  baseUrl: new URL(config.host),
+  middleware: [farcasterHubContext({})],
   initialState: {
     count: 0
   }
