@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     await prisma.user.create({
       data: {
         fid: fid,
-      } as Prisma.UserCreateInput
+      }
     })
   }
 
