@@ -1,6 +1,7 @@
+import { config } from '@/lib/config';
 import axios from 'axios';
 
-const baseURL = 'https://nemes.farcaster.xyz:2281';
+const baseURL = config.farcasterHub.url
 
 interface FarcasterErrorResponse {
   errCode: string;

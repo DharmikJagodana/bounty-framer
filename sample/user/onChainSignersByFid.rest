@@ -1,0 +1,2 @@
+
+GET https://nemes.farcaster.xyz:2281/v1/onChainSignersByFid?fid=411522

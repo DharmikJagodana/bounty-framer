@@ -18,4 +18,7 @@ host = removeTrailingSlash(host)
 export const config = {
   host: host,
   hostname: new URL(host).hostname,
+  farcasterHub: {
+    url: 'https://nemes.farcaster.xyz:2281'
+  }
 }
