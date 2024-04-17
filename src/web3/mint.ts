@@ -28,8 +28,6 @@ export async function mintNft(toAddress: string) {
       args: [toAddress, "https://jade-neighbouring-caribou-79.mypinata.cloud/ipfs/QmRzgsw2F73LsfLzJ2vcUefyoeyVn4CpyMVoH5vjufciwZ"],
     });
     const transaction = await walletClient.writeContract(request);
-    console.log("transaction");
-    console.log(transaction);
     return transaction;
   } catch (error) {
     console.log(error);

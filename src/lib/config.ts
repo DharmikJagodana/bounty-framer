@@ -12,7 +12,6 @@ if (!host) {
 if (!host.startsWith('http')) {
   host = 'https://' + host;
 }
-console.log('host', host);
 
 function removeTrailingSlash(str: string) {
   return str.replace(/\/$/, '');
