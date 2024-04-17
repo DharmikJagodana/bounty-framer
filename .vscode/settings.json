@@ -3,6 +3,7 @@
     "farcaster",
     "Recasted",
     "tanstack",
-    "wagmi"
+    "wagmi",
+    "Warpcast"
   ]
 }
