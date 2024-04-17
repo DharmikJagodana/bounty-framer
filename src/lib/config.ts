@@ -1,3 +1,5 @@
+import { transactionType } from 'viem'
+
 let host = process.env.NEXT_PUBLIC_HOST || process.env.VERCEL_URL || 'http://localhost:3000'
 
 if (!host) {
@@ -20,5 +22,19 @@ export const config = {
   hostname: new URL(host).hostname,
   farcasterHub: {
     url: 'https://nemes.farcaster.xyz:2281'
+  }
+}
+
+const serverUrl = config.host
+
+export const assets = {
+  nft: `${serverUrl}/img/nft.png`,
+  minted: `${serverUrl}/img/minted-nft.png`,
+  transaction_wait: `${serverUrl}/img/transaction-wait.png`,
+  error: {
+    alreadyMinted: `${serverUrl}/img/already-minted.png`,
+    walletNotConnected: `${serverUrl}/img/wallet-not-connected.png`,
+    notFollowing: `${serverUrl}/img/not-following.png`,
+    notRecasted: `${serverUrl}/img/not-recasted.png`,
   }
 }

@@ -1,15 +1,14 @@
 // Route that handles frame actions
 import { prisma } from '@/db';
-import { config } from '@/lib/config';
+import { assets, config } from '@/lib/config';
 import { getFrameHtml, validateFrameMessage, Frame, FrameActionPayload } from "frames.js";
 import { NextRequest } from "next/server";
 import { farcasterService } from '@/service/farcaster';
+import { checkIfAlreadyMinted, mintNft } from '@/web3/mint';
 
 
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as FrameActionPayload;
-  console.log("body");
-  console.log(body);
   // Parse and validate the frame message
   const { isValid, message } = await validateFrameMessage(body);
   if (!isValid || !message) {
@@ -34,7 +33,6 @@ export async function POST(request: NextRequest) {
     eth: connectedAddresses
   });
 
-
   if (!follows) {
     return mustFollowFrame(userFid, targetFid)
   }
@@ -42,6 +40,17 @@ export async function POST(request: NextRequest) {
   if (!recasted) {
     return mustRecastFrame(userFid, targetFid)
   }
+
+  if (!isConnected) {
+    return mustHaveAccountConnected()
+  }
+
+  const isAlreadyMinted = await checkIfAlreadyMinted(connectedAddresses[0])
+  if (isAlreadyMinted) {
+    return alreadyMinted()
+  }
+
+  await mintNft(connectedAddresses[0])
 
   // logs request body
   const result = await prisma.requestLogs.create({
@@ -79,22 +88,23 @@ export async function POST(request: NextRequest) {
       }
     })
   }
+  return mintedSuccessFrame()
+}
 
-  const randomInt = Math.floor(Math.random() * 100);
-  const imageUrlBase = `https://picsum.photos/seed/${randomInt}`;
-
+function mintedSuccessFrame() {
+  const imageUrl = assets.minted;
   // Use the frame message to build the frame
   const frame: Frame = {
     version: "vNext",
-    image: `${imageUrlBase}/1146/600`,
+    image: imageUrl,
     buttons: [
       {
-        label: `Next (pressed by ${message.data.fid})`,
+        label: `Visit Website 🚀`,
         action: "link",
-        target: `https://www.google.com/search?q=${randomInt}`,
+        target: config.host
       },
     ],
-    ogImage: `${imageUrlBase}/600`,
+    ogImage: imageUrl,
     postUrl: `${config.host}/frames`,
   };
 
@@ -109,20 +119,48 @@ export async function POST(request: NextRequest) {
 }
 
 
-function mustFollowFrame(fid: number, targetFid: number) {
-  const randomInt = Math.floor(Math.random() * 100);
-  const imageUrlBase = `https://picsum.photos/seed/${randomInt}`;
+function alreadyMinted() {
+  const imageUrl = assets.error.alreadyMinted;
   // Use the frame message to build the frame
   const frame: Frame = {
     version: "vNext",
-    image: `${imageUrlBase}/1146/600`,
+    image: imageUrl,
+    buttons: [
+      {
+        label: `Visit Website 🚀`,
+        action: "link",
+        target: config.host
+      },
+    ],
+    ogImage: imageUrl,
+    postUrl: `${config.host}/frames`,
+  };
+
+  // Return the frame as HTML
+  const html = getFrameHtml(frame);
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html",
+    },
+    status: 200,
+  });
+}
+
+
+
+function mustFollowFrame(fid: number, targetFid: number) {
+
+  // Use the frame message to build the frame
+  const frame: Frame = {
+    version: "vNext",
+    image: assets.error.notFollowing,
     buttons: [
       {
         label: `Follow and Refresh`,
         action: "post"
       },
     ],
-    ogImage: `${imageUrlBase}/600`,
+    ogImage: assets.error.notFollowing,
     postUrl: `${config.host}/frames`,
   };
 
@@ -137,19 +175,17 @@ function mustFollowFrame(fid: number, targetFid: number) {
 }
 
 function mustRecastFrame(fid: number, targetFid: number) {
-  const randomInt = Math.floor(Math.random() * 100);
-  const imageUrlBase = `https://picsum.photos/seed/${randomInt}`;
   // Use the frame message to build the frame
   const frame: Frame = {
     version: "vNext",
-    image: `${imageUrlBase}/1146/600`,
+    image: assets.error.notRecasted,
     buttons: [
       {
         label: `Recast and Refresh`,
         action: "post"
       },
     ],
-    ogImage: `${imageUrlBase}/600`,
+    ogImage: assets.error.notRecasted,
     postUrl: `${config.host}/frames`,
   };
 
@@ -163,3 +199,27 @@ function mustRecastFrame(fid: number, targetFid: number) {
   });
 }
 
+function mustHaveAccountConnected() {
+  // Use the frame message to build the frame
+  const frame: Frame = {
+    version: "vNext",
+    image: assets.error.walletNotConnected,
+    buttons: [
+      {
+        label: `Connect Wallet and Refresh`,
+        action: "post"
+      },
+    ],
+    ogImage: assets.error.walletNotConnected,
+    postUrl: `${config.host}/frames`,
+  };
+
+  // Return the frame as HTML
+  const html = getFrameHtml(frame);
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html",
+    },
+    status: 200,
+  });
+}
