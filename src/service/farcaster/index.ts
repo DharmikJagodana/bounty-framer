@@ -45,7 +45,6 @@ async function checkIfFollows(fid: number, targetFid: number):
       return [true, "User follows target"];
     }
     const response = await axios.get(`${baseURL}/v1/linkById?fid=${fid}&target_fid=${targetFid}&link_type=follow`);
-    console.log(response.data);
     return [true, response.data];
   } catch (e: any) {
     if (e.response) {
@@ -74,7 +73,6 @@ async function checkIfRecastedFrame(
       return [true, "User has recasted frame"];
     }
     const response = await axios.get(`${baseURL}/v1/reactionById?fid=${fid}&reaction_type=1&target_fid=${targetFid}&target_hash=${targetFrameHash}`);
-    console.log(response.data);
     return [true, response.data];
   } catch (e: any) {
     if (e.response) {
@@ -99,9 +97,6 @@ async function getConnectEthAddress(fid: number): Promise<[boolean, string]> {
     const data = response.data as {
       messages: IVerificationResponseItem[],
     }
-    console.log("response.data");
-    console.log(response.data);
-
     const array = data.messages;
     let addresses: string[] = []
     for (let i = 0; i < array.length; i++) {
