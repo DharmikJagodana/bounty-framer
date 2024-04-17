@@ -1,59 +1,97 @@
 // Route that handles frame actions
 import { prisma } from '@/db';
 import { assets, config } from '@/lib/config';
-import { getFrameHtml, validateFrameMessage, Frame, FrameActionPayload } from "frames.js";
-import { NextRequest } from "next/server";
+import {
+  getFrameHtml,
+  validateFrameMessage,
+  Frame,
+  FrameActionPayload,
+} from 'frames.js';
+import { NextRequest } from 'next/server';
 import { farcasterService } from '@/service/farcaster';
 import { checkIfAlreadyMinted, mintNft } from '@/web3/mint';
-
 
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as FrameActionPayload;
   // Parse and validate the frame message
   const { isValid, message } = await validateFrameMessage(body);
   if (!isValid || !message) {
-    return new Response("Invalid message", { status: 400 });
+    return new Response('Invalid message', { status: 400 });
   }
 
-  const userFid = body.untrustedData.fid
-  const targetFid = body.untrustedData.fid
-  const castHash = body.untrustedData.castId.hash
+  const userFid = body.untrustedData.fid;
+  const targetFid = body.untrustedData.fid;
+  const castHash = body.untrustedData.castId.hash;
 
-  const promises = []
-  promises.push(farcasterService.checkIfFollows(userFid, targetFid))
-  promises.push(farcasterService.checkIfRecastedFrame(userFid, targetFid, castHash))
-  promises.push(farcasterService.getConnectEthAddress(userFid))
+  const promises = [];
+  promises.push(farcasterService.checkIfFollows(userFid, targetFid));
+  promises.push(
+    farcasterService.checkIfRecastedFrame(userFid, targetFid, castHash),
+  );
+  promises.push(farcasterService.getConnectEthAddress(userFid));
 
-  const [[follows], [recasted], [isConnected, ethAddresses]] = await Promise.all(promises)
-  let connectedAddresses = ethAddresses.split(",")
-  console.log({
-    follows,
-    recasted,
-    isConnected,
-    eth: connectedAddresses
+  const [[follows], [recasted], [isWalletConnected, ethAddresses]] =
+    await Promise.all(promises);
+
+  const fid = body.untrustedData.fid;
+  let dbUser = await prisma.user.findUnique({
+    where: {
+      fid: fid,
+    },
   });
+  if (!dbUser) {
+    // create user
+    dbUser = await prisma.user.create({
+      data: {
+        fid: fid,
+      },
+    });
+  }
 
   if (!follows) {
-    return mustFollowFrame(userFid, targetFid)
+    return mustFollowFrame(userFid, targetFid);
   }
 
   if (!recasted) {
-    return mustRecastFrame(userFid, targetFid)
+    return mustRecastFrame(userFid, targetFid);
   }
 
-  if (!isConnected) {
-    return mustHaveAccountConnected()
+  if (!isWalletConnected) {
+    return mustHaveAccountConnected();
   }
-
-  const isAlreadyMinted = await checkIfAlreadyMinted(connectedAddresses[0])
+  const [userAddress] = ethAddresses.split(',');
+  const isAlreadyMinted = await checkIfAlreadyMinted(userAddress);
   if (isAlreadyMinted) {
-    return alreadyMinted()
+    // check if 24 passed
+    const txInLast24Hours = await prisma.transactions.findMany({
+      where: {
+        fid: userFid,
+        timestamp: {
+          gte:
+            new Date().getTime() - config.allowMintEveryHours * 60 * 60 * 1000,
+        },
+      },
+    });
+    if (txInLast24Hours.length > 0) {
+      return alreadyMinted();
+    }
   }
 
-  await mintNft(connectedAddresses[0])
-
+  const txHash = await mintNft(userAddress);
+  prisma.transactions.create({
+    data: {
+      fid: body.untrustedData.fid,
+      userId: dbUser?.id!,
+      txHash: txHash + '',
+      messageHash: body.untrustedData.messageHash,
+      status: 'pending',
+      network: body.untrustedData.network,
+      address: userAddress,
+      timestamp: new Date().getTime(),
+    },
+  });
   // logs request body
-  const result = await prisma.requestLogs.create({
+  prisma.requestLogs.create({
     data: {
       fid: body.untrustedData.fid,
       url: body.untrustedData.url,
@@ -61,47 +99,30 @@ export async function POST(request: NextRequest) {
       timestamp: body.untrustedData.timestamp,
       network: body.untrustedData.network,
       buttonIndex: body.untrustedData.buttonIndex,
-      address: "",
+      address: '',
       castId: {
         fid: body.untrustedData.castId.fid,
         hash: body.untrustedData.castId.hash,
       },
       trustedData: {
         messageBytes: body.trustedData.messageBytes,
-      }
-    }
-  })
-  console.log("result");
-  console.log(result);
-
-  const fid = body.untrustedData.fid;
-  const dbUser = await prisma.user.findUnique({
-    where: {
-      fid: fid
-    }
-  })
-  if (!dbUser) {
-    // create user
-    await prisma.user.create({
-      data: {
-        fid: fid,
-      }
-    })
-  }
-  return mintedSuccessFrame()
+      },
+    },
+  });
+  return mintedSuccessFrame();
 }
 
 function mintedSuccessFrame() {
   const imageUrl = assets.minted;
   // Use the frame message to build the frame
   const frame: Frame = {
-    version: "vNext",
+    version: 'vNext',
     image: imageUrl,
     buttons: [
       {
         label: `Visit Website 🚀`,
-        action: "link",
-        target: config.host
+        action: 'link',
+        target: config.host,
       },
     ],
     ogImage: imageUrl,
@@ -112,24 +133,23 @@ function mintedSuccessFrame() {
   const html = getFrameHtml(frame);
   return new Response(html, {
     headers: {
-      "Content-Type": "text/html",
+      'Content-Type': 'text/html',
     },
     status: 200,
   });
 }
-
 
 function alreadyMinted() {
   const imageUrl = assets.error.alreadyMinted;
   // Use the frame message to build the frame
   const frame: Frame = {
-    version: "vNext",
+    version: 'vNext',
     image: imageUrl,
     buttons: [
       {
         label: `Visit Website 🚀`,
-        action: "link",
-        target: config.host
+        action: 'link',
+        target: config.host,
       },
     ],
     ogImage: imageUrl,
@@ -140,24 +160,21 @@ function alreadyMinted() {
   const html = getFrameHtml(frame);
   return new Response(html, {
     headers: {
-      "Content-Type": "text/html",
+      'Content-Type': 'text/html',
     },
     status: 200,
   });
 }
 
-
-
 function mustFollowFrame(fid: number, targetFid: number) {
-
   // Use the frame message to build the frame
   const frame: Frame = {
-    version: "vNext",
+    version: 'vNext',
     image: assets.error.notFollowing,
     buttons: [
       {
         label: `Follow and Refresh`,
-        action: "post"
+        action: 'post',
       },
     ],
     ogImage: assets.error.notFollowing,
@@ -168,7 +185,7 @@ function mustFollowFrame(fid: number, targetFid: number) {
   const html = getFrameHtml(frame);
   return new Response(html, {
     headers: {
-      "Content-Type": "text/html",
+      'Content-Type': 'text/html',
     },
     status: 200,
   });
@@ -177,12 +194,12 @@ function mustFollowFrame(fid: number, targetFid: number) {
 function mustRecastFrame(fid: number, targetFid: number) {
   // Use the frame message to build the frame
   const frame: Frame = {
-    version: "vNext",
+    version: 'vNext',
     image: assets.error.notRecasted,
     buttons: [
       {
         label: `Recast and Refresh`,
-        action: "post"
+        action: 'post',
       },
     ],
     ogImage: assets.error.notRecasted,
@@ -193,7 +210,7 @@ function mustRecastFrame(fid: number, targetFid: number) {
   const html = getFrameHtml(frame);
   return new Response(html, {
     headers: {
-      "Content-Type": "text/html",
+      'Content-Type': 'text/html',
     },
     status: 200,
   });
@@ -202,12 +219,12 @@ function mustRecastFrame(fid: number, targetFid: number) {
 function mustHaveAccountConnected() {
   // Use the frame message to build the frame
   const frame: Frame = {
-    version: "vNext",
+    version: 'vNext',
     image: assets.error.walletNotConnected,
     buttons: [
       {
         label: `Connect Wallet and Refresh`,
-        action: "post"
+        action: 'post',
       },
     ],
     ogImage: assets.error.walletNotConnected,
@@ -218,7 +235,7 @@ function mustHaveAccountConnected() {
   const html = getFrameHtml(frame);
   return new Response(html, {
     headers: {
-      "Content-Type": "text/html",
+      'Content-Type': 'text/html',
     },
     status: 200,
   });

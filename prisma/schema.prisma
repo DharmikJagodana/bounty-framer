@@ -26,6 +26,18 @@ model RequestLogs {
   trustedData TrustedData
 }
 
+model Transactions {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  fid         Int
+  userId      String
+  txHash      String
+  messageHash String
+  timestamp   Int
+  network     Int
+  address     String
+  status      String
+}
+
 type CastId {
   fid  Int
   hash String
