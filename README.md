@@ -1,6 +1,7 @@
 # Bounty Framer for Warpcast Frame
 
-This project implements a Bounty Framer for the Warpcast Frame, facilitating daily token giveaways based on user eligibility criteria.
+
+This project implements a [Bounty Framer for the Warpcast Frame](https://earn.superteam.fun/listings/bounty/create-a-frame-for-farcaster/), facilitating daily token giveaways based on user eligibility criteria.
 
 ## Features
 
@@ -51,8 +52,8 @@ Create a .env file in the root directory of the project and add the following en
 
 ```plaintext
 NEXT_PUBLIC_HOST=example.com
-PRIVATE_KEY=0x123456789abcdef...
-CONTRACT_ADDRESS=0x07Bf8Dbb8eF2d42035b99003634Bc1aA809C52D1
+PRIVATE_KEY=<Your Ethereum wallet private key here> // Use a temporary account if you are just exploring the repository
+CONTRACT_ADDRESS=<Deploy your contract and put the address here>
 DATABASE_URL=mongodb+srv://username:password@clustername.mongodb.net/dbname
 ```
 
