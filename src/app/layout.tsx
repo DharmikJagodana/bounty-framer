@@ -2,13 +2,16 @@ import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google"
 import "./globals.css";
 import { cn } from '@/lib/utils';
+import { Providers } from '@/components/providers';
 
+import { headers } from 'next/headers'
+import { cookieToInitialState } from 'wagmi'
+import { config } from '@/web3/config';
 
 const fontSans = FontSans({
   subsets: ["latin"],
   variable: "--font-sans",
 })
-
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -20,12 +23,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const initialState = cookieToInitialState(
+    config,
+    headers().get('cookie')
+  )
   return (
     <html lang="en">
       <body className={cn(
         "min-h-screen bg-background font-sans antialiased",
         fontSans.variable
-      )}>{children}</body>
+      )}>
+        <Providers initialState={initialState}>
+          {children}
+        </Providers>
+      </body>
     </html>
   );
 }

@@ -1,3 +1,4 @@
+import Wallet from '@/components/wallet';
 import { config } from '@/lib/config';
 import { Frame, getFrameFlattened } from "frames.js";
 
@@ -21,5 +22,7 @@ export async function generateMetadata() {
 }
 
 export default function Page() {
-  return <span>My existing page</span>;
+  return <span>
+    <Wallet />
+  </span>;
 }
