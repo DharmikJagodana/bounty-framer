@@ -146,17 +146,17 @@ function mintedSuccessFrame(
     image: imageUrl,
     buttons: [
       {
-        label: `Visit Website 🚀`,
+        label: `Website 🚀`,
         action: 'link',
         target: config.host,
       },
       {
-        label: `View Transaction 🧾`,
+        label: `Transaction 🧾`,
         action: 'link',
         target: `${config.chain_explorer}/tx/${txHash}`,
       },
       {
-        label: `View in Account 📈`,
+        label: `Check NFT 📈`,
         action: 'link',
         target: `${config.chain_explorer}/address/${address}`,
       }
