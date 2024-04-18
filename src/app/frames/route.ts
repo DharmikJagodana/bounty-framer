@@ -9,7 +9,7 @@ import {
 } from 'frames.js';
 import { NextRequest } from 'next/server';
 import { farcasterService } from '@/service/farcaster';
-import { checkIfAlreadyMinted, mintNft } from '@/web3/mint';
+import { checkIfAlreadyMinted, checkIfTransactionIsConfirmed, mintNft } from '@/web3/mint';
 
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as FrameActionPayload;
@@ -73,12 +73,15 @@ export async function POST(request: NextRequest) {
       },
     });
     if (txInLast24Hours.length > 0) {
-      return alreadyMinted();
+      return alreadyMinted(
+        txInLast24Hours[0].txHash,
+        txInLast24Hours[0].address,
+      );
     }
   }
 
   const txHash = await mintNft(userAddress);
-  prisma.transactions.create({
+  const createdEntry = await prisma.transactions.create({
     data: {
       fid: body.untrustedData.fid,
       userId: dbUser?.id!,
@@ -90,6 +93,23 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().getTime(),
     },
   });
+  if (txHash) {
+    const timer = setInterval(async () => {
+      // check if transaction is confirmed
+      const confirmed = await checkIfTransactionIsConfirmed(txHash as string);
+      if (confirmed) {
+        await prisma.transactions.update({
+          where: {
+            id: createdEntry.id,
+          },
+          data: {
+            status: 'confirmed',
+          },
+        });
+        clearInterval(timer);
+      }
+    }, 5000)
+  }
   // logs request body
   prisma.requestLogs.create({
     data: {
@@ -109,10 +129,16 @@ export async function POST(request: NextRequest) {
       },
     },
   });
-  return mintedSuccessFrame();
+  return mintedSuccessFrame(
+    txHash as string,
+    userAddress,
+  );
 }
 
-function mintedSuccessFrame() {
+function mintedSuccessFrame(
+  txHash: string,
+  address: string,
+) {
   const imageUrl = assets.minted;
   // Use the frame message to build the frame
   const frame: Frame = {
@@ -124,6 +150,16 @@ function mintedSuccessFrame() {
         action: 'link',
         target: config.host,
       },
+      {
+        label: `View Transaction 🧾`,
+        action: 'link',
+        target: `${config.chain_explorer}/tx/${txHash}`,
+      },
+      {
+        label: `View in Account 📈`,
+        action: 'link',
+        target: `${config.chain_explorer}/address/${address}`,
+      }
     ],
     ogImage: imageUrl,
     postUrl: `${config.host}/frames`,
@@ -139,7 +175,9 @@ function mintedSuccessFrame() {
   });
 }
 
-function alreadyMinted() {
+function alreadyMinted(txHash: string,
+  address: string,
+) {
   const imageUrl = assets.error.alreadyMinted;
   // Use the frame message to build the frame
   const frame: Frame = {
@@ -147,10 +185,20 @@ function alreadyMinted() {
     image: imageUrl,
     buttons: [
       {
-        label: `Visit Website 🚀`,
+        label: `Website 🚀`,
         action: 'link',
         target: config.host,
       },
+      {
+        label: `Transaction 🧾`,
+        action: 'link',
+        target: `${config.chain_explorer}/tx/${txHash}`,
+      },
+      {
+        label: `Check NFT 📈`,
+        action: 'link',
+        target: `${config.chain_explorer}/address/${address}`,
+      }
     ],
     ogImage: imageUrl,
     postUrl: `${config.host}/frames`,

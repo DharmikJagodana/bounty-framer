@@ -35,6 +35,19 @@ export async function mintNft(toAddress: string) {
   }
 }
 
+export async function checkIfTransactionIsConfirmed(txHash: string): Promise<boolean> {
+  try {
+    const  result: any = await publicClient.getTransactionConfirmations({
+      hash: txHash as `0x`,
+    });
+    const number = parseInt(result, 16)
+    return number > 0;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
 export async function checkIfAlreadyMinted(
   toAddress: string
 ) {

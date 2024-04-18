@@ -25,6 +25,7 @@ export const config = {
   farcasterHub: {
     url: 'https://nemes.farcaster.xyz:2281',
   },
+  chain_explorer: "https://base-sepolia.blockscout.com",
   allowMintEveryHours: 24,
 };
 
