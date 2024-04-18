@@ -2,7 +2,7 @@ import { createWalletClient, http, createPublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import contractAbi from "./contract.json";
-const contractAddress = process.env.CONTRACT_ADDRESS as `0x`;
+export const contractAddress = process.env.CONTRACT_ADDRESS as `0x`;
 
 const account = privateKeyToAccount((process.env.PRIVATE_KEY as `0x`) || "");
 
@@ -37,7 +37,7 @@ export async function mintNft(toAddress: string) {
 
 export async function checkIfTransactionIsConfirmed(txHash: string): Promise<boolean> {
   try {
-    const  result: any = await publicClient.getTransactionConfirmations({
+    const result: any = await publicClient.getTransactionConfirmations({
       hash: txHash as `0x`,
     });
     const number = parseInt(result, 16)

@@ -9,7 +9,7 @@ import {
 } from 'frames.js';
 import { NextRequest } from 'next/server';
 import { farcasterService } from '@/service/farcaster';
-import { checkIfAlreadyMinted, checkIfTransactionIsConfirmed, mintNft } from '@/web3/mint';
+import { checkIfAlreadyMinted, checkIfTransactionIsConfirmed, contractAddress, mintNft } from '@/web3/mint';
 
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as FrameActionPayload;
@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
       trustedData: {
         messageBytes: body.trustedData.messageBytes,
       },
+      contractAddress: contractAddress
     },
   });
   if (!follows) {
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
         config.allowMintEveryHours * 60 * 60 * 1000 -
         (currentTime - mintTime)
       ) / (60 * 60 * 1000);
-     
+
       return alreadyMinted(
         txInLast24Hours[0].txHash,
         txInLast24Hours[0].address,
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
       network: body.untrustedData.network,
       address: userAddress,
       timestamp: new Date(currentTime),
+      contractAddress: contractAddress
     },
   });
   if (txHash) {

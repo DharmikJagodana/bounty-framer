@@ -24,6 +24,7 @@ model RequestLogs {
   buttonIndex Int
   castId      CastId
   trustedData TrustedData
+  contractAddress String
 }
 
 model Transactions {
@@ -36,6 +37,7 @@ model Transactions {
   network     Int
   address     String
   status      String
+  contractAddress String
 }
 
 type CastId {
