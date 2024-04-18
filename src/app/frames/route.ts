@@ -47,7 +47,26 @@ export async function POST(request: NextRequest) {
       },
     });
   }
-
+  const currentTime = new Date().getTime();
+  // logs request body
+  await prisma.requestLogs.create({
+    data: {
+      fid: body.untrustedData.fid,
+      url: body.untrustedData.url,
+      messageHash: body.untrustedData.messageHash,
+      timestamp: new Date(currentTime),
+      network: body.untrustedData.network,
+      buttonIndex: body.untrustedData.buttonIndex,
+      address: '',
+      castId: {
+        fid: body.untrustedData.castId.fid,
+        hash: body.untrustedData.castId.hash,
+      },
+      trustedData: {
+        messageBytes: body.trustedData.messageBytes,
+      },
+    },
+  });
   if (!follows) {
     return mustFollowFrame(userFid, targetFid);
   }
@@ -62,20 +81,29 @@ export async function POST(request: NextRequest) {
   const [userAddress] = ethAddresses.split(',');
   const isAlreadyMinted = await checkIfAlreadyMinted(userAddress);
   if (isAlreadyMinted) {
+    const lastAllowedMint = currentTime - config.allowMintEveryHours * 60 * 60 * 1000;
     // check if 24 passed
     const txInLast24Hours = await prisma.transactions.findMany({
       where: {
         fid: userFid,
         timestamp: {
-          gte:
-            new Date().getTime() - config.allowMintEveryHours * 60 * 60 * 1000,
+          gte: new Date(lastAllowedMint),
         },
       },
     });
+
     if (txInLast24Hours.length > 0) {
+      const mintTime = txInLast24Hours[0].timestamp.getTime();
+      // calculate how many hours after i can mint again
+      const comeAfterHours = (
+        config.allowMintEveryHours * 60 * 60 * 1000 -
+        (currentTime - mintTime)
+      ) / (60 * 60 * 1000);
+     
       return alreadyMinted(
         txInLast24Hours[0].txHash,
         txInLast24Hours[0].address,
+        Math.floor(comeAfterHours) + '',
       );
     }
   }
@@ -90,7 +118,7 @@ export async function POST(request: NextRequest) {
       status: 'pending',
       network: body.untrustedData.network,
       address: userAddress,
-      timestamp: new Date().getTime(),
+      timestamp: new Date(currentTime),
     },
   });
   if (txHash) {
@@ -110,25 +138,6 @@ export async function POST(request: NextRequest) {
       }
     }, 5000)
   }
-  // logs request body
-  prisma.requestLogs.create({
-    data: {
-      fid: body.untrustedData.fid,
-      url: body.untrustedData.url,
-      messageHash: body.untrustedData.messageHash,
-      timestamp: body.untrustedData.timestamp,
-      network: body.untrustedData.network,
-      buttonIndex: body.untrustedData.buttonIndex,
-      address: '',
-      castId: {
-        fid: body.untrustedData.castId.fid,
-        hash: body.untrustedData.castId.hash,
-      },
-      trustedData: {
-        messageBytes: body.trustedData.messageBytes,
-      },
-    },
-  });
   return mintedSuccessFrame(
     txHash as string,
     userAddress,
@@ -177,8 +186,9 @@ function mintedSuccessFrame(
 
 function alreadyMinted(txHash: string,
   address: string,
+  comeAfterHours: string
 ) {
-  const imageUrl = assets.error.alreadyMinted;
+  const imageUrl = `${config.host}/og/already-minted/${new Date().getTime()}/${comeAfterHours}/opengraph-image`;
   // Use the frame message to build the frame
   const frame: Frame = {
     version: 'vNext',
